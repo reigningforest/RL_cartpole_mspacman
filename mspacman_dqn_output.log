@@ -17,3 +17,5 @@ Episode 60/6000 | Reward: 270.0 | Avg(100): 256.50 | Steps: 663 | Epsilon: 1.000
 Episode 70/6000 | Reward: 130.0 | Avg(100): 247.00 | Steps: 634 | Epsilon: 1.0000 | Global Step: 47537
   [Step 50000] Target network updated
 Episode 80/6000 | Reward: 230.0 | Avg(100): 242.00 | Steps: 606 | Epsilon: 0.9962 | Global Step: 53793
+Episode 90/6000 | Reward: 190.0 | Avg(100): 233.56 | Steps: 504 | Epsilon: 0.9903 | Global Step: 59816
+  [Step 60000] Target network updated
