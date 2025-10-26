@@ -1,0 +1,8 @@
+gymnasium>=1.0
+gymnasium[atari]
+autorom[accept-rom-license]
+gymnasium[classic-control]
+pandas
+torch
+matplotlib
+numpy
