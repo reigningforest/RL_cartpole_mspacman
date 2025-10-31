@@ -9,22 +9,27 @@ import matplotlib.pyplot as plt
 import os
 import random
 from collections import deque, namedtuple
+from torch.optim.lr_scheduler import StepLR  # <-- IMPORTED SCHEDULER
 
 # --- Hyperparameters ---
-LEARNING_RATE = 0.00025       # Standard for Atari DQN
-DISCOUNT_FACTOR = 0.99        # Required by assignment
-NUM_EPISODES = 6000           # As suggested by assignment
-EVAL_EPISODES = 500           # Required by assignment
-STACK_SIZE = 4                # Correct
+LEARNING_RATE = 0.00025  # Standard for Atari DQN
+DISCOUNT_FACTOR = 0.99  # Required by assignment
+NUM_EPISODES = 6000  # As suggested by assignment
+EVAL_EPISODES = 500  # Required by assignment
+STACK_SIZE = 4
 
 # DQN-Specific Hyperparameters
-REPLAY_BUFFER_SIZE = 500000   # INCREASED: 100k is too small, 1M is standard
-BATCH_SIZE = 32               # Standard for Atari
+REPLAY_BUFFER_SIZE = 1000000  # INCREASED: 1M is standard
+BATCH_SIZE = 32  # Standard for Atari
 EPSILON_START = 1.0
 EPSILON_END = 0.01
-EPSILON_DECAY_STEPS = 1000000 # NEW: We will decay linearly over 1M steps
-TARGET_UPDATE_FREQ = 10000    # INCREASED: 10k steps is standard, 1k is too frequent
-LEARNING_STARTS = 50000       # INCREASED: 50k is the standard, 10k is too small
+EPSILON_DECAY_STEPS = 3000000  # INCREASED: Decay over 3M steps
+TARGET_UPDATE_FREQ = 10000  # 10k steps is standard
+LEARNING_STARTS = 50000  # 50k is the standard
+
+# --- NEW: Scheduler Hyperparameters ---
+SCHEDULER_STEP_SIZE = 1000000  # Decay LR every 1M steps
+SCHEDULER_GAMMA = 0.9  # Decay LR by 10%
 
 GPU_ID = 3  # Change this to the appropriate GPU ID if needed
 
@@ -41,7 +46,7 @@ def preprocess_observation(obs):
     Preprocesses a 210x160x3 frame to an 88x80x1 frame as per assignment.
     """
     img = obs[1:176:2, ::2]  # crop and downsize -> (88, 80, 3)
-    img = img.sum(axis=2)    # to greyscale -> (88, 80)
+    img = img.sum(axis=2)  # to greyscale -> (88, 80)
     img[img == mspacman_color] = 0  # Improve contrast
     
     # Normalize from -128 to 127 as specified in assignment
@@ -56,8 +61,8 @@ class QNetwork(nn.Module):
         super(QNetwork, self).__init__()
         # Input shape: (N, 4, 88, 80) -> (Batch, Channels, Height, Width)
         self.conv1 = nn.Conv2d(STACK_SIZE, 32, kernel_size=8, stride=4)  # -> (N, 32, 21, 19)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)          # -> (N, 64, 9, 8)
-        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)          # -> (N, 64, 7, 6)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=4, stride=2)  # -> (N, 64, 9, 8)
+        self.conv3 = nn.Conv2d(64, 64, kernel_size=3, stride=1)  # -> (N, 64, 7, 6)
         
         # Flattened size: 64 * 7 * 6 = 2688
         self.fc1 = nn.Linear(2688, 512)
@@ -121,12 +126,13 @@ def optimize_model(policy_net, target_net, optimizer, memory, device):
     
     # Filter out None states and concatenate
     non_final_next_states = torch.cat([s for s in batch.next_state
-                                                if s is not None])
+                                       if s is not None])
 
     # Concatenate all tensors
     state_batch = torch.cat(batch.state)
     action_batch = torch.cat(batch.action).to(device)
     reward_batch = torch.cat(batch.reward).to(device)
+    done_batch = torch.cat(batch.done).to(device)
     
     # Convert states to float and normalize to [-1, 1] for the network
     state_batch_float = state_batch.float().to(device) / 128.0
@@ -142,8 +148,9 @@ def optimize_model(policy_net, target_net, optimizer, memory, device):
         if non_final_next_states.shape[0] > 0:
             next_q_values[non_final_mask] = target_net(non_final_next_states_float).max(1)[0]
 
-    # 3. Compute the target Q-value: R + gamma * max Q(s', a')
-    target_q_values = reward_batch + (DISCOUNT_FACTOR * next_q_values)
+    # 3. Compute the target Q-value: R + gamma * max Q(s', a') * (1 - done)
+    # When done=1 (terminal state), the future value is 0
+    target_q_values = reward_batch + (DISCOUNT_FACTOR * next_q_values * (1 - done_batch))
 
     # 4. Compute Loss (Huber loss for stability)
     loss = F.smooth_l1_loss(current_q_values, target_q_values.unsqueeze(1))
@@ -168,7 +175,7 @@ def main():
         device = torch.device("cpu")
     print(f"Using device: {device}")
     
-    # Create environment - using ALE/MsPacman-v5 which is the updated version
+    # Create environment
     env = gym.make('MsPacman-v0')
     action_size = env.action_space.n
     print(f"Action space size: {action_size}")
@@ -179,10 +186,19 @@ def main():
     target_net.eval()
 
     optimizer = optim.Adam(policy_net.parameters(), lr=LEARNING_RATE)
+    
+    # --- NEW: Initialize scheduler ---
+    scheduler = StepLR(optimizer, step_size=SCHEDULER_STEP_SIZE, gamma=SCHEDULER_GAMMA)
+    
     memory = ReplayBuffer(REPLAY_BUFFER_SIZE)
 
     all_episode_rewards = []
     all_max_q_values = []
+    
+    # --- NEW: Track best model ---
+    best_avg_reward = -float('inf')
+    os.makedirs('models', exist_ok=True)
+    best_model_path = os.path.join('models', 'mspacman_dqn_best.pth')
     
     epsilon = EPSILON_START
     global_step = 0
@@ -193,120 +209,185 @@ def main():
     print("Starting training...")
     print(f"Learning will start after {LEARNING_STARTS} steps...")
     
-    for episode in range(NUM_EPISODES):
-        obs, _ = env.reset()
-        proc_obs = preprocess_observation(obs)
-        
-        # Initialize frame stack with the first frame repeated
-        for _ in range(STACK_SIZE):
-            frame_stack.append(proc_obs)
-        
-        state_np = np.concatenate(list(frame_stack), axis=2)
-        state_np_chw = state_np.transpose(2, 0, 1)  # (C, H, W)
-        # State is a (1, 4, 88, 80) int8 tensor
-        state = torch.tensor(state_np_chw, dtype=torch.int8).unsqueeze(0)
-        
-        episode_reward = 0
-        episode_max_q = -float('inf')
-        episode_steps = 0
-        done = False
+    try:
+        for episode in range(NUM_EPISODES):
+            obs, _ = env.reset()
+            proc_obs = preprocess_observation(obs)
+            
+            # Initialize frame stack with the first frame repeated
+            for _ in range(STACK_SIZE):
+                frame_stack.append(proc_obs)
+            
+            state_np = np.concatenate(list(frame_stack), axis=2)
+            state_np_chw = state_np.transpose(2, 0, 1)  # (C, H, W)
+            # State is a (1, 4, 88, 80) int8 tensor
+            state = torch.tensor(state_np_chw, dtype=torch.int8).unsqueeze(0)
+            
+            episode_reward = 0
+            episode_max_q = -float('inf')
+            episode_steps = 0
+            done = False
 
-        while not done:
-            # Select action
-            action = select_action(state, policy_net, epsilon, action_size, device)
-            
-            # Take action
-            next_obs, reward, terminated, truncated, _ = env.step(action.item())
-            done = bool(terminated or truncated)
-            
-            # Clip rewards to [-1, 1] for stability (common practice in Atari)
-            clipped_reward = np.clip(reward, -1, 1)
-            episode_reward += reward  # Track actual reward
-            
-            # Prepare tensors for replay buffer
-            reward_tensor = torch.tensor([clipped_reward], dtype=torch.float32)
-
-            if not done:
-                # Preprocess new frame and add to stack
-                proc_next_obs = preprocess_observation(next_obs)
-                frame_stack.append(proc_next_obs)
+            while not done:
+                # Select action
+                action = select_action(state, policy_net, epsilon, action_size, device)
                 
-                # Create next_state tensor
-                next_state_np = np.concatenate(list(frame_stack), axis=2)
-                next_state_np_chw = next_state_np.transpose(2, 0, 1)
-                next_state = torch.tensor(next_state_np_chw, dtype=torch.int8).unsqueeze(0)
-            else:
-                next_state = None  # Terminal state
-
-            # Store transition (all tensors stored on CPU to save GPU memory)
-            memory.push(state, action.cpu(), next_state, reward_tensor, None)
-
-            if not done:
-                state = next_state
-
-            # Increment global step counter
-            global_step += 1
-            episode_steps += 1
-            
-            # Start training after LEARNING_STARTS steps
-            if global_step >= LEARNING_STARTS:
-                # Optimize model
-                batch_max_q = optimize_model(policy_net, target_net, optimizer, memory, device)
+                # Take action
+                next_obs, reward, terminated, truncated, _ = env.step(action.item())
+                done = bool(terminated or truncated)
                 
-                if batch_max_q is not None:
-                    episode_max_q = max(episode_max_q, batch_max_q)
+                # Clip rewards to [-1, 1] for stability (common practice in Atari)
+                clipped_reward = np.clip(reward, -1, 1)
+                episode_reward += reward  # Track actual reward
                 
-                # Linearly decay epsilon over 1,000,000 steps *after* learning starts
-                if global_step > LEARNING_STARTS:
-                    decay_step = global_step - LEARNING_STARTS
-                    if decay_step < EPSILON_DECAY_STEPS:
-                        epsilon = EPSILON_START - (EPSILON_START - EPSILON_END) * (decay_step / EPSILON_DECAY_STEPS)
-                    else:
-                        epsilon = EPSILON_END
+                # Prepare tensors for replay buffer
+                reward_tensor = torch.tensor([clipped_reward], dtype=torch.float32)
+
+                if not done:
+                    # Preprocess new frame and add to stack
+                    proc_next_obs = preprocess_observation(next_obs)
+                    frame_stack.append(proc_next_obs)
+                    
+                    # Create next_state tensor
+                    next_state_np = np.concatenate(list(frame_stack), axis=2)
+                    next_state_np_chw = next_state_np.transpose(2, 0, 1)
+                    next_state = torch.tensor(next_state_np_chw, dtype=torch.int8).unsqueeze(0)
                 else:
-                    epsilon = EPSILON_START # Still 1.0 before learning starts
-                
-                # Update target network based on steps
-                if global_step % TARGET_UPDATE_FREQ == 0:
-                    target_net.load_state_dict(policy_net.state_dict())
-                    print(f"  [Step {global_step}] Target network updated")
+                    next_state = None  # Terminal state
 
-            if done:
-                all_episode_rewards.append(episode_reward)
-                all_max_q_values.append(episode_max_q if episode_max_q != -float('inf') else 0)
-                break
-        
-        # Print progress
-        if (episode + 1) % 10 == 0:
-            avg_reward = np.mean(all_episode_rewards[-100:]) if len(all_episode_rewards) >= 100 else np.mean(all_episode_rewards)
-            print(f'Episode {episode+1}/{NUM_EPISODES} | Reward: {episode_reward:.1f} | '
-                  f'Avg(100): {avg_reward:.2f} | Steps: {episode_steps} | '
-                  f'Epsilon: {epsilon:.4f} | Global Step: {global_step}')
-        
-        # Save checkpoint every 1000 episodes
-        if (episode + 1) % 1000 == 0:
-            os.makedirs('models', exist_ok=True)
-            checkpoint_path = os.path.join('models', f'mspacman_dqn_episode_{episode+1}.pth')
-            torch.save({
-                'episode': episode + 1,
-                'policy_net_state_dict': policy_net.state_dict(),
-                'target_net_state_dict': target_net.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'epsilon': epsilon,
-                'global_step': global_step,
-            }, checkpoint_path)
-            print(f"  Checkpoint saved to: {checkpoint_path}")
+                # Store transition (all tensors stored on CPU to save GPU memory)
+                done_tensor = torch.tensor([float(done)], dtype=torch.float32)
+                memory.push(state, action.cpu(), next_state, reward_tensor, done_tensor)
+
+                if not done:
+                    state = next_state
+
+                # Increment global step counter
+                global_step += 1
+                episode_steps += 1
+                
+                # Start training after LEARNING_STARTS steps
+                if global_step >= LEARNING_STARTS:
+                    # Optimize model
+                    batch_max_q = optimize_model(policy_net, target_net, optimizer, memory, device)
+                    
+                    if batch_max_q is not None:
+                        episode_max_q = max(episode_max_q, batch_max_q)
+                    
+                    # Step the scheduler every SCHEDULER_STEP_SIZE global steps
+                    if global_step % SCHEDULER_STEP_SIZE == 0:
+                        scheduler.step()
+                        current_lr = optimizer.param_groups[0]['lr']
+                        print(f"   [Step {global_step}] Learning rate updated to: {current_lr:.6f}")
+                    
+                    # Linearly decay epsilon
+                    if global_step > LEARNING_STARTS:
+                        decay_step = global_step - LEARNING_STARTS
+                        if decay_step < EPSILON_DECAY_STEPS:
+                            epsilon = EPSILON_START - (EPSILON_START - EPSILON_END) * (decay_step / EPSILON_DECAY_STEPS)
+                        else:
+                            epsilon = EPSILON_END
+                    else:
+                        epsilon = EPSILON_START # Still 1.0 before learning starts
+                    
+                    # Update target network based on steps
+                    if global_step % TARGET_UPDATE_FREQ == 0:
+                        target_net.load_state_dict(policy_net.state_dict())
+                        # print(f"   [Step {global_step}] Target network updated")
+
+                if done:
+                    all_episode_rewards.append(episode_reward)
+                    all_max_q_values.append(episode_max_q if episode_max_q != -float('inf') else 0)
+                    break
+            
+            # --- MODIFIED: Print progress and save best model ---
+            if (episode + 1) % 100 == 0:
+                avg_reward = 0
+                if len(all_episode_rewards) >= 100:
+                    avg_reward = np.mean(all_episode_rewards[-100:])
+                    
+                    print(f'Episode {episode+1}/{NUM_EPISODES} | Reward: {episode_reward:.1f} | '
+                          f'Avg(100): {avg_reward:.2f} | Steps: {episode_steps} | '
+                          f'Epsilon: {epsilon:.4f} | Global Step: {global_step}')
+                    
+                    # --- NEW: Save best model logic ---
+                    if avg_reward > best_avg_reward:
+                        best_avg_reward = avg_reward
+                        torch.save(policy_net.state_dict(), best_model_path)
+                        print(f"  *** New best model saved with avg reward: {avg_reward:.2f} ***")
+                else:
+                    # Print simpler log if not enough episodes for 100-avg
+                    print(f'Episode {episode+1}/{NUM_EPISODES} | Reward: {episode_reward:.1f} | '
+                          f'Epsilon: {epsilon:.4f} | Global Step: {global_step}')
+            
+            # Save checkpoint (optional, good for resuming)
+            if (episode + 1) % 1000 == 0:
+                checkpoint_path = os.path.join('models', f'mspacman_dqn_episode_{episode+1}.pth')
+                torch.save({
+                    'episode': episode + 1,
+                    'policy_net_state_dict': policy_net.state_dict(),
+                    'target_net_state_dict': target_net.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'scheduler_state_dict': scheduler.state_dict(),
+                    'epsilon': epsilon,
+                    'global_step': global_step,
+                }, checkpoint_path)
+                print(f"  Checkpoint saved to: {checkpoint_path}")
+
+    except KeyboardInterrupt:
+        print("\n\n*** Training interrupted by user ***")
+        print(f"Saving emergency checkpoint at episode {episode+1}...")
+        emergency_path = os.path.join('models', f'mspacman_dqn_emergency_ep{episode+1}.pth')
+        torch.save({
+            'episode': episode + 1,
+            'policy_net_state_dict': policy_net.state_dict(),
+            'target_net_state_dict': target_net.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'scheduler_state_dict': scheduler.state_dict(),
+            'epsilon': epsilon,
+            'global_step': global_step,
+        }, emergency_path)
+        print(f"Emergency checkpoint saved to: {emergency_path}")
+        raise
+    except Exception as e:
+        print(f"\n\n*** FATAL ERROR at episode {episode+1}, step {global_step} ***")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error message: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        print("\nSaving emergency checkpoint...")
+        emergency_path = os.path.join('models', f'mspacman_dqn_emergency_ep{episode+1}.pth')
+        torch.save({
+            'episode': episode + 1,
+            'policy_net_state_dict': policy_net.state_dict(),
+            'target_net_state_dict': target_net.state_dict(),
+            'optimizer_state_dict': optimizer.state_dict(),
+            'scheduler_state_dict': scheduler.state_dict(),
+            'epsilon': epsilon,
+            'global_step': global_step,
+        }, emergency_path)
+        print(f"Emergency checkpoint saved to: {emergency_path}")
+        raise
 
     print("Training finished.")
     
     # Save final model
-    os.makedirs('models', exist_ok=True)
     final_model_path = os.path.join('models', 'mspacman_dqn_final.pth')
     torch.save(policy_net.state_dict(), final_model_path)
     print(f"Final model saved to: {final_model_path}")
     
     # 3. Post-Training Evaluation
-    print(f"\nRunning final evaluation for {EVAL_EPISODES} episodes...")
+    
+    # --- NEW: Load the *best* model for evaluation ---
+    if os.path.exists(best_model_path):
+        print(f"\nLoading best model from {best_model_path} for evaluation...")
+        policy_net.load_state_dict(torch.load(best_model_path))
+    else:
+        print("\nNo best model found, evaluating with final model.")
+    
+    policy_net.eval()  # Set policy net to evaluation mode
+    
+    print(f"Running final evaluation for {EVAL_EPISODES} episodes...")
     eval_rewards = []
     eval_frame_stack = deque(maxlen=STACK_SIZE)
     
@@ -349,7 +430,7 @@ def main():
     # 4. Report and Plot Results
     mean_reward = float(np.mean(eval_rewards))
     std_reward = float(np.std(eval_rewards))
-    print("\n--- Evaluation Results ---")
+    print("\n--- Evaluation Results (using BEST model) ---")
     print(f"Mean Reward: {mean_reward:.2f}")
     print(f"Standard Deviation: {std_reward:.2f}")
 
@@ -373,7 +454,7 @@ def main():
     if len(all_episode_rewards) >= 100:
         moving_avg = np.convolve(all_episode_rewards, np.ones(100)/100, mode='valid')
         plt.plot(np.arange(99, len(all_episode_rewards)), moving_avg, 
-                label='100-Episode Moving Average', color='red', linewidth=2)
+                 label='100-Episode Moving Average', color='red', linewidth=2)
     plt.title('Episode Reward vs. Training Episodes for MsPacman-v0')
     plt.xlabel('Episode')
     plt.ylabel('Total Reward')
@@ -387,11 +468,11 @@ def main():
     # Plot 3: Histogram of Evaluation Rewards
     plt.figure(figsize=(12, 6))
     plt.hist(eval_rewards, bins=30, edgecolor='black')
-    plt.title(f'Histogram of Rewards over {EVAL_EPISODES} Evaluation Episodes')
+    plt.title(f'Histogram of Rewards over {EVAL_EPISODES} Evaluation Episodes (Best Model)')
     plt.xlabel('Total Reward')
     plt.ylabel('Frequency')
     plt.axvline(mean_reward, color='red', linestyle='dashed', linewidth=2, 
-               label=f'Mean: {mean_reward:.2f}')
+                label=f'Mean: {mean_reward:.2f}')
     plt.legend()
     plt.grid(True)
     plot3_path = os.path.join('plots', 'mspacman_v0_eval_histogram.png')
