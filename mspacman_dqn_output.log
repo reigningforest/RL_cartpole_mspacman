@@ -1,1 +1,118 @@
 nohup: ignoring input
+CUDA is available. Using GPU: NVIDIA RTX A6000
+Using device: cuda:3
+/nfs/home/kek6109/.conda/envs/rl_1/lib/python3.10/site-packages/gymnasium/envs/registration.py:512: DeprecationWarning: [33mWARN: The environment MsPacman-v0 is out of date. You should consider upgrading to version `v4`.[0m
+  logger.deprecation(
+A.L.E: Arcade Learning Environment (version 0.11.2+ecc1138)
+[Powered by Stella]
+Action space size: 9
+Starting training...
+Learning will start after 50000 steps...
+Episode 100/6000 | Reward: 130.0 | Avg(100): 225.70 | Steps: 525 | Epsilon: 0.9948 | Global Step: 65811
+  *** New best model saved with avg reward: 225.70 ***
+Episode 200/6000 | Reward: 260.0 | Avg(100): 241.60 | Steps: 727 | Epsilon: 0.9736 | Global Step: 130018
+  *** New best model saved with avg reward: 241.60 ***
+Episode 300/6000 | Reward: 370.0 | Avg(100): 253.70 | Steps: 724 | Epsilon: 0.9515 | Global Step: 196879
+  *** New best model saved with avg reward: 253.70 ***
+Episode 400/6000 | Reward: 190.0 | Avg(100): 256.70 | Steps: 708 | Epsilon: 0.9290 | Global Step: 265219
+  *** New best model saved with avg reward: 256.70 ***
+Episode 500/6000 | Reward: 200.0 | Avg(100): 250.70 | Steps: 491 | Epsilon: 0.9072 | Global Step: 331297
+Episode 600/6000 | Reward: 370.0 | Avg(100): 281.00 | Steps: 673 | Epsilon: 0.8843 | Global Step: 400721
+  *** New best model saved with avg reward: 281.00 ***
+Episode 700/6000 | Reward: 200.0 | Avg(100): 263.20 | Steps: 648 | Epsilon: 0.8623 | Global Step: 467398
+Episode 800/6000 | Reward: 140.0 | Avg(100): 270.30 | Steps: 604 | Epsilon: 0.8406 | Global Step: 532899
+Episode 900/6000 | Reward: 230.0 | Avg(100): 280.30 | Steps: 617 | Epsilon: 0.8183 | Global Step: 600472
+Episode 1000/6000 | Reward: 530.0 | Avg(100): 280.10 | Steps: 801 | Epsilon: 0.7962 | Global Step: 667662
+  Checkpoint saved to: models/mspacman_dqn_episode_1000.pth
+Episode 1100/6000 | Reward: 290.0 | Avg(100): 288.70 | Steps: 601 | Epsilon: 0.7743 | Global Step: 733957
+  *** New best model saved with avg reward: 288.70 ***
+Episode 1200/6000 | Reward: 300.0 | Avg(100): 304.40 | Steps: 771 | Epsilon: 0.7523 | Global Step: 800539
+  *** New best model saved with avg reward: 304.40 ***
+Episode 1300/6000 | Reward: 160.0 | Avg(100): 329.00 | Steps: 426 | Epsilon: 0.7299 | Global Step: 868374
+  *** New best model saved with avg reward: 329.00 ***
+Episode 1400/6000 | Reward: 300.0 | Avg(100): 368.20 | Steps: 732 | Epsilon: 0.7071 | Global Step: 937440
+  *** New best model saved with avg reward: 368.20 ***
+   [Step 1000000] Learning rate updated to: 0.000250
+Episode 1500/6000 | Reward: 150.0 | Avg(100): 365.20 | Steps: 540 | Epsilon: 0.6839 | Global Step: 1007787
+Episode 1600/6000 | Reward: 270.0 | Avg(100): 342.80 | Steps: 619 | Epsilon: 0.6612 | Global Step: 1076743
+Episode 1700/6000 | Reward: 460.0 | Avg(100): 392.10 | Steps: 858 | Epsilon: 0.6377 | Global Step: 1147732
+  *** New best model saved with avg reward: 392.10 ***
+Episode 1800/6000 | Reward: 340.0 | Avg(100): 421.20 | Steps: 681 | Epsilon: 0.6129 | Global Step: 1223076
+  *** New best model saved with avg reward: 421.20 ***
+Episode 1900/6000 | Reward: 240.0 | Avg(100): 480.20 | Steps: 623 | Epsilon: 0.5873 | Global Step: 1300472
+  *** New best model saved with avg reward: 480.20 ***
+Episode 2000/6000 | Reward: 540.0 | Avg(100): 459.20 | Steps: 868 | Epsilon: 0.5626 | Global Step: 1375312
+  Checkpoint saved to: models/mspacman_dqn_episode_2000.pth
+Episode 2100/6000 | Reward: 260.0 | Avg(100): 483.60 | Steps: 636 | Epsilon: 0.5384 | Global Step: 1448676
+  *** New best model saved with avg reward: 483.60 ***
+Episode 2200/6000 | Reward: 270.0 | Avg(100): 433.60 | Steps: 573 | Epsilon: 0.5144 | Global Step: 1521616
+Episode 2300/6000 | Reward: 680.0 | Avg(100): 491.10 | Steps: 957 | Epsilon: 0.4885 | Global Step: 1599879
+  *** New best model saved with avg reward: 491.10 ***
+Episode 2400/6000 | Reward: 840.0 | Avg(100): 538.70 | Steps: 833 | Epsilon: 0.4621 | Global Step: 1680130
+  *** New best model saved with avg reward: 538.70 ***
+Episode 2500/6000 | Reward: 950.0 | Avg(100): 500.80 | Steps: 1040 | Epsilon: 0.4369 | Global Step: 1756489
+Episode 2600/6000 | Reward: 400.0 | Avg(100): 574.80 | Steps: 828 | Epsilon: 0.4103 | Global Step: 1836850
+  *** New best model saved with avg reward: 574.80 ***
+Episode 2700/6000 | Reward: 380.0 | Avg(100): 645.00 | Steps: 599 | Epsilon: 0.3826 | Global Step: 1920914
+  *** New best model saved with avg reward: 645.00 ***
+   [Step 2000000] Learning rate updated to: 0.000250
+Episode 2800/6000 | Reward: 360.0 | Avg(100): 634.00 | Steps: 572 | Epsilon: 0.3559 | Global Step: 2001771
+Episode 2900/6000 | Reward: 1510.0 | Avg(100): 685.60 | Steps: 1260 | Epsilon: 0.3284 | Global Step: 2085198
+  *** New best model saved with avg reward: 685.60 ***
+Episode 3000/6000 | Reward: 590.0 | Avg(100): 648.90 | Steps: 831 | Epsilon: 0.3012 | Global Step: 2167605
+  Checkpoint saved to: models/mspacman_dqn_episode_3000.pth
+Episode 3100/6000 | Reward: 550.0 | Avg(100): 616.60 | Steps: 1078 | Epsilon: 0.2753 | Global Step: 2246129
+Episode 3200/6000 | Reward: 560.0 | Avg(100): 607.20 | Steps: 775 | Epsilon: 0.2499 | Global Step: 2323178
+Episode 3300/6000 | Reward: 1160.0 | Avg(100): 660.80 | Steps: 1113 | Epsilon: 0.2237 | Global Step: 2402412
+Episode 3400/6000 | Reward: 370.0 | Avg(100): 695.00 | Steps: 530 | Epsilon: 0.1970 | Global Step: 2483364
+  *** New best model saved with avg reward: 695.00 ***
+Episode 3500/6000 | Reward: 260.0 | Avg(100): 756.20 | Steps: 459 | Epsilon: 0.1705 | Global Step: 2563754
+  *** New best model saved with avg reward: 756.20 ***
+Episode 3600/6000 | Reward: 340.0 | Avg(100): 654.50 | Steps: 615 | Epsilon: 0.1437 | Global Step: 2644952
+Episode 3700/6000 | Reward: 1320.0 | Avg(100): 713.00 | Steps: 967 | Epsilon: 0.1177 | Global Step: 2723684
+Episode 3800/6000 | Reward: 390.0 | Avg(100): 760.20 | Steps: 583 | Epsilon: 0.0904 | Global Step: 2806255
+  *** New best model saved with avg reward: 760.20 ***
+Episode 3900/6000 | Reward: 700.0 | Avg(100): 728.00 | Steps: 930 | Epsilon: 0.0635 | Global Step: 2887864
+Episode 4000/6000 | Reward: 360.0 | Avg(100): 720.60 | Steps: 573 | Epsilon: 0.0357 | Global Step: 2972151
+  Checkpoint saved to: models/mspacman_dqn_episode_4000.pth
+   [Step 3000000] Learning rate updated to: 0.000250
+Episode 4100/6000 | Reward: 1560.0 | Avg(100): 747.70 | Steps: 1172 | Epsilon: 0.0100 | Global Step: 3053867
+Episode 4200/6000 | Reward: 410.0 | Avg(100): 686.30 | Steps: 643 | Epsilon: 0.0100 | Global Step: 3130537
+Episode 4300/6000 | Reward: 430.0 | Avg(100): 598.00 | Steps: 714 | Epsilon: 0.0100 | Global Step: 3202148
+Episode 4400/6000 | Reward: 520.0 | Avg(100): 593.40 | Steps: 610 | Epsilon: 0.0100 | Global Step: 3273945
+Episode 4500/6000 | Reward: 2090.0 | Avg(100): 653.30 | Steps: 1205 | Epsilon: 0.0100 | Global Step: 3349858
+Episode 4600/6000 | Reward: 650.0 | Avg(100): 414.40 | Steps: 934 | Epsilon: 0.0100 | Global Step: 3420635
+Episode 4700/6000 | Reward: 160.0 | Avg(100): 160.50 | Steps: 586 | Epsilon: 0.0100 | Global Step: 3485612
+Episode 4800/6000 | Reward: 130.0 | Avg(100): 251.30 | Steps: 707 | Epsilon: 0.0100 | Global Step: 3556033
+Episode 4900/6000 | Reward: 730.0 | Avg(100): 397.10 | Steps: 1010 | Epsilon: 0.0100 | Global Step: 3628158
+Episode 5000/6000 | Reward: 360.0 | Avg(100): 368.10 | Steps: 712 | Epsilon: 0.0100 | Global Step: 3698132
+  Checkpoint saved to: models/mspacman_dqn_episode_5000.pth
+Episode 5100/6000 | Reward: 540.0 | Avg(100): 482.60 | Steps: 1018 | Epsilon: 0.0100 | Global Step: 3773967
+Episode 5200/6000 | Reward: 230.0 | Avg(100): 450.50 | Steps: 445 | Epsilon: 0.0100 | Global Step: 3850042
+Episode 5300/6000 | Reward: 330.0 | Avg(100): 521.30 | Steps: 579 | Epsilon: 0.0100 | Global Step: 3930063
+   [Step 4000000] Learning rate updated to: 0.000250
+Episode 5400/6000 | Reward: 360.0 | Avg(100): 500.70 | Steps: 905 | Epsilon: 0.0100 | Global Step: 4006453
+Episode 5500/6000 | Reward: 110.0 | Avg(100): 490.50 | Steps: 577 | Epsilon: 0.0100 | Global Step: 4081468
+Episode 5600/6000 | Reward: 60.0 | Avg(100): 409.70 | Steps: 622 | Epsilon: 0.0100 | Global Step: 4150764
+Episode 5700/6000 | Reward: 70.0 | Avg(100): 476.40 | Steps: 412 | Epsilon: 0.0100 | Global Step: 4225502
+Episode 5800/6000 | Reward: 280.0 | Avg(100): 521.30 | Steps: 707 | Epsilon: 0.0100 | Global Step: 4304788
+Episode 5900/6000 | Reward: 260.0 | Avg(100): 572.80 | Steps: 691 | Epsilon: 0.0100 | Global Step: 4384490
+Episode 6000/6000 | Reward: 490.0 | Avg(100): 518.40 | Steps: 789 | Epsilon: 0.0100 | Global Step: 4463903
+  Checkpoint saved to: models/mspacman_dqn_episode_6000.pth
+Training finished.
+Final model saved to: models/mspacman_dqn_final.pth
+
+Loading best model from models/mspacman_dqn_best.pth for evaluation...
+Running final evaluation for 500 episodes...
+  Evaluation episode 100/500 completed
+  Evaluation episode 200/500 completed
+  Evaluation episode 300/500 completed
+  Evaluation episode 400/500 completed
+  Evaluation episode 500/500 completed
+
+--- Evaluation Results (using BEST model) ---
+Mean Reward: 326.16
+Standard Deviation: 131.87
+Plot 1 saved to: plots/mspacman_v0_q_values.png
+Plot 2 saved to: plots/mspacman_v0_rewards.png
+Plot 3 saved to: plots/mspacman_v0_eval_histogram.png
