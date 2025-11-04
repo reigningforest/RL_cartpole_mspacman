@@ -8,30 +8,38 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import os
 import random
+import gc  # For garbage collection
 from collections import deque, namedtuple
 from torch.optim.lr_scheduler import StepLR  # <-- IMPORTED SCHEDULER
 
+# Limit CPU threads to prevent spawning too many processes
+torch.set_num_threads(4)  # Limit PyTorch to 4 threads
+torch.set_num_interop_threads(4)  # Limit inter-op parallelism
+os.environ["OMP_NUM_THREADS"] = "4"  # Limit OpenMP threads
+os.environ["MKL_NUM_THREADS"] = "4"  # Limit Intel MKL threads
+
 # --- Hyperparameters ---
-LEARNING_RATE = 0.00025  # Standard for Atari DQN
+LEARNING_RATE = 0.0001  # Standard for Atari DQN
 DISCOUNT_FACTOR = 0.99  # Required by assignment
 NUM_EPISODES = 6000  # As suggested by assignment
 EVAL_EPISODES = 500  # Required by assignment
 STACK_SIZE = 4
 
 # DQN-Specific Hyperparameters
-REPLAY_BUFFER_SIZE = 1000000  # INCREASED: 1M is standard
+REPLAY_BUFFER_SIZE = 50000  # Reduced to save RAM (~3 GB vs 56 GB)
 BATCH_SIZE = 32  # Standard for Atari
 EPSILON_START = 1.0
 EPSILON_END = 0.01
-EPSILON_DECAY_STEPS = 3000000  # INCREASED: Decay over 3M steps
-TARGET_UPDATE_FREQ = 10000  # 10k steps is standard
-LEARNING_STARTS = 50000  # 50k is the standard
+EPSILON_DECAY_STEPS = 1000000  # Reduced: decay over 1M steps (was 2M)
+TARGET_UPDATE_FREQ = 5000  # Reduced: update every 5k steps (was 15k)
+LEARNING_STARTS = 5000  # Reduced from 50k since buffer is smaller
 
 # --- NEW: Scheduler Hyperparameters ---
-SCHEDULER_STEP_SIZE = 1000000  # Decay LR every 1M steps
+SCHEDULER_STEP_SIZE = 1  # StepLR step_size (decay every call to scheduler.step())
 SCHEDULER_GAMMA = 0.9  # Decay LR by 10%
+SCHEDULER_CALL_FREQ = 1000000  # Call scheduler.step() every 1M global steps
 
-GPU_ID = 3  # Change this to the appropriate GPU ID if needed
+GPU_ID = 4  # Change this to the appropriate GPU ID if needed
 
 # Define the Transition tuple for the Replay Buffer
 Transition = namedtuple('Transition',
@@ -256,8 +264,11 @@ def main():
                     next_state = None  # Terminal state
 
                 # Store transition (all tensors stored on CPU to save GPU memory)
+                # CRITICAL: Detach tensors to break computation graph and prevent memory leak
                 done_tensor = torch.tensor([float(done)], dtype=torch.float32)
-                memory.push(state, action.cpu(), next_state, reward_tensor, done_tensor)
+                memory.push(state.detach().cpu(), action.detach().cpu(), 
+                           next_state.detach().cpu() if next_state is not None else None, 
+                           reward_tensor, done_tensor)
 
                 if not done:
                     state = next_state
@@ -274,8 +285,8 @@ def main():
                     if batch_max_q is not None:
                         episode_max_q = max(episode_max_q, batch_max_q)
                     
-                    # Step the scheduler every SCHEDULER_STEP_SIZE global steps
-                    if global_step % SCHEDULER_STEP_SIZE == 0:
+                    # Step the scheduler every SCHEDULER_CALL_FREQ global steps
+                    if global_step % SCHEDULER_CALL_FREQ == 0:
                         scheduler.step()
                         current_lr = optimizer.param_groups[0]['lr']
                         print(f"   [Step {global_step}] Learning rate updated to: {current_lr:.6f}")
@@ -319,6 +330,11 @@ def main():
                     # Print simpler log if not enough episodes for 100-avg
                     print(f'Episode {episode+1}/{NUM_EPISODES} | Reward: {episode_reward:.1f} | '
                           f'Epsilon: {epsilon:.4f} | Global Step: {global_step}')
+                
+                # Force garbage collection every 100 episodes to free memory
+                gc.collect()
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
             
             # Save checkpoint (optional, good for resuming)
             if (episode + 1) % 1000 == 0:

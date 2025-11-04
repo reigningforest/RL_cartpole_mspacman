@@ -1,0 +1,29 @@
+nohup: ignoring input
+CUDA is available. Using GPU: NVIDIA RTX A6000
+Using device: cuda:4
+/nfs/home/kek6109/.conda/envs/rl_1/lib/python3.10/site-packages/gymnasium/envs/registration.py:512: DeprecationWarning: [33mWARN: The environment MsPacman-v0 is out of date. You should consider upgrading to version `v4`.[0m
+  logger.deprecation(
+A.L.E: Arcade Learning Environment (version 0.11.2+ecc1138)
+[Powered by Stella]
+Action space size: 9
+Loaded best model from: models/mspacman_dqn_best.pth
+
+Running evaluation for 500 episodes...
+  Episode 100/500 completed | Current Average: 956.60
+  Episode 200/500 completed | Current Average: 984.70
+  Episode 300/500 completed | Current Average: 1024.53
+  Episode 400/500 completed | Current Average: 1015.12
+  Episode 500/500 completed | Current Average: 1013.02
+
+============================================================
+EVALUATION RESULTS (Best Model)
+============================================================
+Episodes:         500
+Mean Reward:      1013.02
+Std Deviation:    477.60
+Min Reward:       260.00
+Max Reward:       5670.00
+============================================================
+
+Histogram saved to: plots/eval_reward_histogram.png
+Progression plot saved to: plots/eval_reward_progression.png
